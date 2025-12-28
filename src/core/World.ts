@@ -1,11 +1,12 @@
-import { Body } from "../physics/Body";
-import { AABB } from "../math/AABB";
+import { Body, ShapeType } from "../physics/Body";
 import { Resolution } from "../physics/Resolution";
 import { Vec2 } from "../math/Vec2";
+import { Collision, CollisionManifold } from "../physics/Collision";
+
 
 export class World {
     bodies: Body[] = [];
-    gravity = new Vec2(10, 90);
+    gravity = new Vec2(0, 600);
 
     add(body: Body) {
         this.bodies.push(body);
@@ -14,7 +15,8 @@ export class World {
     step(dt: number) {
         // integrate motion
         for (const body of this.bodies) {
-            body.integrate(dt, this.gravity);
+            if (body.mass !== 0)
+                body.integrate(dt, this.gravity);
         }
 
         // collision detection
@@ -23,11 +25,22 @@ export class World {
                 const a = this.bodies[i];
                 const b = this.bodies[j];
 
-                const manifold = AABB.AABBvsAABB(a, b);
-                if (manifold) {
-                    Resolution.resolve(a, b, manifold);
-                }
+                this.solveCollision(a, b);
             }
+        }
+    }
+    
+    private solveCollision(a: Body, b: Body) {
+        let manifold = null;
+        if (a.shapeType === ShapeType.Box && b.shapeType === ShapeType.Box)
+            manifold = Collision.AABBvsAABB(a, b);
+        else if (a.shapeType === ShapeType.Circle && b.shapeType === ShapeType.Circle)
+            manifold = Collision.CircleVsCircle(a, b);
+        else if (a.shapeType === ShapeType.Box && b.shapeType === ShapeType.Circle)
+            manifold = Collision.CircleVsAABB(b, a);
+
+        if (manifold) {
+            Resolution.resolve(a, b, manifold);
         }
     }
 }

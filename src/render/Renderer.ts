@@ -1,13 +1,5 @@
 import { World } from "../core/World";
-
-function getRandomInt(min: number, max: number) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-function getRandomColor() {
-    return `rgb(${Math.floor(255 - 42.5 * getRandomInt(1, 10))} ${Math.floor(
-        255 - 42.5 * getRandomInt(1, 10),
-    )} 0)`;
-}
+import { ShapeType } from "../physics/Body";
 
 export class Renderer {
     constructor(private ctx: CanvasRenderingContext2D) { }
@@ -16,12 +8,25 @@ export class Renderer {
         this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
         for (const body of world.bodies) {
             this.ctx.fillStyle = body.render.color;
-            this.ctx.fillRect(
-                body.position.x,
-                body.position.y,
-                body.size.x,
-                body.size.y
-            );
+            if (body.shapeType === ShapeType.Box) {
+                this.ctx.fillRect(
+                    body.position.x - body.size.x / 2, // Subtract half width
+                    body.position.y - body.size.y / 2, // Subtract half height
+                    body.size.x,
+                    body.size.y
+                );
+            } else if (body.shapeType === ShapeType.Circle) {
+                this.ctx.beginPath(); // Start a new path
+                this.ctx.arc(
+                    body.position.x,
+                    body.position.y,
+                    body.radius,
+                    0,
+                    2 * Math.PI
+                );
+                this.ctx.fill(); // Actually draw the circle
+                this.ctx.closePath();
+            }
         }
     }
 }

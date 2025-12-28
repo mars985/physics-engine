@@ -28,6 +28,9 @@ export class Vec2 {
     dot(v: Vec2) {
         return this.x * v.x + this.y * v.y;
     }
+    magnitude() {
+        return Math.sqrt(this.x * this.x + this.y * this.y);
+    }
 
     static add(a: Vec2, b: Vec2) {
         return new Vec2(a.x + b.x, a.y + b.y);
