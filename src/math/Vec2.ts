@@ -15,11 +15,20 @@ export class Vec2 {
         this.y -= v.y;
         return this;
     }
-    scale(v: Vec2) {
+    multiply(v: Vec2) {
         this.x *= v.x;
         this.y *= v.y;
         return this;
     }
+    scale(s: number) {
+        this.x *= s;
+        this.y *= s;
+        return this;
+    }
+    dot(v: Vec2) {
+        return this.x * v.x + this.y * v.y;
+    }
+
     static add(a: Vec2, b: Vec2) {
         return new Vec2(a.x + b.x, a.y + b.y);
     }

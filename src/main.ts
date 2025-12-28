@@ -10,17 +10,29 @@ const ctx = canvas.getContext("2d")!;
 const renderer = new Renderer(ctx);
 
 const world = new World();
-world.add(new Body(100, 50));
+// world.add(new Body(100, 50, 2,2,1,80,140));
+const boxA = new Body(100, 200, 50, 50, 20, 70, 0, 1, "red");
+const boxB = new Body(300, 200, 50, 50, 20, -80, 0, 0.9, "blue");
 
-let last = performance.now();
+world.add(boxA);
+world.add(boxB);
+
+const FIXED_DT = 1 / 60;
+let accumulator = 0;
+let lastTime = performance.now();
 
 function loop(time: number) {
-  const dt = (time - last) / 1000;
-  last = time;
+  const delta = (time - lastTime) / 1000;
+  lastTime = time;
 
-  world.step(dt);
+  accumulator += delta;
+
+  while (accumulator >= FIXED_DT) {
+    world.step(FIXED_DT);
+    accumulator -= FIXED_DT;
+  }
+
   renderer.draw(world);
-
   requestAnimationFrame(loop);
 }
 
