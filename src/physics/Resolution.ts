@@ -29,7 +29,10 @@ export class Resolution {
         if (velAlongNormal > 0) return;
 
         // 4. Calculate impulse magnitude
-        const e = Math.min(a.restitution, b.restitution);
+        let e = Math.min(a.restitution, b.restitution);
+        if (velAlongNormal > -1) {
+            e = 0; // resting contact
+        }
         let j = -(1 + e) * velAlongNormal;
         j /= (a.invMass + b.invMass);
 

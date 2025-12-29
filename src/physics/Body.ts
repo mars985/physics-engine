@@ -15,6 +15,7 @@ export interface BodyOptions {
     restitution?: number;
     color?: string;
     shapeType?: ShapeType;
+    movable?: boolean;
 }
 
 export class Body {
@@ -27,6 +28,9 @@ export class Body {
     restitution: number;
     shapeType: ShapeType;
     render: RenderComponent;
+    movable: boolean;
+
+    force = new Vec2(0, 0);
 
     constructor(options: BodyOptions) {
         const {
@@ -40,7 +44,8 @@ export class Body {
             vy = 0,
             restitution = 1,
             color = "white",
-            shapeType = ShapeType.Box
+            shapeType = ShapeType.Box,
+            movable = true,
         } = options;
 
         this.position = new Vec2(x, y);
@@ -52,23 +57,49 @@ export class Body {
         this.restitution = restitution;
         this.shapeType = shapeType;
         this.render = new RenderComponent(color);
+        this.movable = movable;
     }
-    integrate(dt: number, gravity: Vec2) {
-        this.velocity.x += gravity.x * dt;
-        this.velocity.y += gravity.y * dt;
 
-        const damping = 0.99;
-        // const damping = 1;
-        this.velocity.x *= damping;
-        this.velocity.y *= damping;
+    integrate(dt: number) {
+        const accelerationX = this.force.x * this.invMass;
+        const accelerationY = this.force.y * this.invMass;
 
-        const velocityThreshold = 0.5;
-        if (Math.abs(this.velocity.x) < velocityThreshold)
-            this.velocity.x = 0;
-        if (Math.abs(this.velocity.y) < velocityThreshold)
-            this.velocity.y = 0;
-
+        this.velocity.x += accelerationX * dt;
+        this.velocity.y += accelerationY * dt;
         this.position.x += this.velocity.x * dt;
         this.position.y += this.velocity.y * dt;
+
+        this.force.x = 0;
+        this.force.y = 0;
+        const velocityLimit = 500;
+        if (this.velocity.x > velocityLimit)
+            this.velocity.x = velocityLimit
+        if (this.velocity.x < -velocityLimit)
+            this.velocity.x = -velocityLimit
+        if (this.velocity.y > velocityLimit)
+            this.velocity.y = velocityLimit
+        if (this.velocity.y < -velocityLimit)
+            this.velocity.y = -velocityLimit
     }
+
+    // integrate(dt: number, gravity: Vec2) {
+    //     this.velocity.x += gravity.x * dt;
+    //     this.velocity.y += gravity.y * dt;
+
+    //     // const damping = 0.99;
+    //     const damping = 1;
+    //     this.velocity.x *= damping;
+    //     this.velocity.y *= damping;
+
+    //     // const velocityThreshold = 0.01;
+    //     // if (Math.abs(this.velocity.x) < velocityThreshold)
+    //     //     this.velocity.x = 0;
+    //     // if (Math.abs(this.velocity.y) < velocityThreshold)
+    //     //     this.velocity.y = 0;
+
+    //     this.position.x += this.velocity.x * dt;
+    //     this.position.y += this.velocity.y * dt;
+
+    //     // console.log(this.mass + " " + this.position + " " + this.velocity);
+    // }
 }

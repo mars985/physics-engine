@@ -31,6 +31,14 @@ export class Vec2 {
     magnitude() {
         return Math.sqrt(this.x * this.x + this.y * this.y);
     }
+    normalize() {
+        const mag = this.magnitude();
+        if (mag > 0) {
+            this.x /= mag;
+            this.y /= mag;
+        }
+        return this;
+    }
 
     static add(a: Vec2, b: Vec2) {
         return new Vec2(a.x + b.x, a.y + b.y);
