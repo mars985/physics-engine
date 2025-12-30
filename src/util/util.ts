@@ -1,23 +1,35 @@
-export function getRandomInt(min: number, max: number) {
+// Utility helpers
+export function clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, value));
+}
+
+export function lerp(a: number, b: number, t: number): number {
+    return a + (b - a) * t;
+}
+
+export function getRandomInt(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-export function getRandomColor() {
+// More pleasant random colors (pastel-ish)
+export function getRandomColor(): string {
     const hue = getRandomInt(0, 360);
-    const saturation = 40;
-    const luminosity = 70;
-    return `hsl(${hue}, ${saturation}%, ${luminosity}%)`;
+    const saturation = getRandomInt(50, 70);
+    const lightness = getRandomInt(55, 75);
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
-export function getVelocityColor(velocity: number) {
-    const hue = 200;
-    const luminosity = 20 + velocity / 5;
-    const saturation = 50;
-    return `hsl(${hue}, ${saturation}%, ${luminosity}%)`;
-}
-export function getAccelerationColor(acc: number, maxAcc: number) {
-    const min = 1e-3;
-    const norm = Math.log(acc + 1) / Math.log(maxAcc + 1);
-    const hue = 240 - 240 * norm;
-    return `hsl(${hue}, 70%, 50%)`;
+// Velocity → Color (blue → red)
+export function getVelocityColor(
+    velocity: number,
+    maxVelocity = 1000
+): string {
+    const t = clamp(velocity / maxVelocity, 0, 1);
+
+    // Blue (240°) → Red (0°)
+    const hue = lerp(240, 0, t);
+    const saturation = 70;
+    const lightness = lerp(40, 60, t);
+
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }

@@ -1,7 +1,7 @@
-import { Body, ShapeType } from "../physics/Body";
-import { Resolution } from "../physics/Resolution";
-import { Vec2 } from "../math/Vec2";
-import { Collision, CollisionManifold } from "../physics/Collision";
+import { Body, ShapeType } from "../physics/Body.js";
+import { Resolution } from "../physics/Resolution.js";
+import { Vec2 } from "../math/Vec2.js";
+import { Collision, CollisionManifold } from "../physics/Collision.js";
 
 
 export class World {
@@ -17,6 +17,9 @@ export class World {
     add(body: Body) {
         this.bodies.push(body);
     }
+    remove(i: number) {
+        this.bodies.splice(i, 1);
+    }
 
     step(dt: number) {
         if (this.enable_mutual_gravity)
@@ -31,29 +34,29 @@ export class World {
     private applyMutualGravity() {
         const G = 100;
         const softening = 25;
-        let i = 0;
-        while (i < this.bodies.length && !this.bodies[i].movable) {
-        // for (i = 0; i < this.bodies.length; i++) {
-            for (let j = i + 1; j < this.bodies.length; j++) {
+        let i = this.bodies.length - 1;
+        while (i >= 0 && !this.bodies[i].movable) {
+            // for (i = 0; i < this.bodies.length; i++) {
+            for (let j = i - 1; j >= 0; j--) {
                 const a = this.bodies[i];
                 const b = this.bodies[j];
 
                 const delta = b.position.clone().sub(a.position);
                 const distSq = delta.x * delta.x + delta.y * delta.y + softening;
-                const dist = Math.sqrt(distSq);
+                const dist = Math.sqrt(distSq); //< 100 ? 100 : Math.sqrt(distSq);
 
-                const MAX_RANGE = 100000;
-                const maxDistSq = MAX_RANGE * MAX_RANGE;
-                if (distSq > maxDistSq) continue;
+                // const MAX_RANGE = 100000;
+                // const maxDistSq = MAX_RANGE * MAX_RANGE;
+                // if (distSq > maxDistSq) continue;
 
-                const invDist = 1 / Math.sqrt(distSq);
+                const invDist = 1 / dist;
                 const forceMag = G * a.mass * b.mass * invDist * invDist;
                 const force = delta.scale(forceMag / dist);
 
                 a.force.add(force);
                 b.force.sub(force);
             }
-            i++;
+            i--;
         }
     }
 

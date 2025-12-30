@@ -1,5 +1,5 @@
-import { Vec2 } from '../math/Vec2'
-import { RenderComponent } from '../render/Renderer';
+import { Vec2 } from '../math/Vec2.js'
+import { RenderComponent } from '../render/Renderer.js';
 
 export enum ShapeType { Box, Circle };
 
@@ -31,6 +31,7 @@ export class Body {
     movable: boolean;
 
     force = new Vec2(0, 0);
+    id = performance.now();
 
     constructor(options: BodyOptions) {
         const {
@@ -71,15 +72,15 @@ export class Body {
 
         this.force.x = 0;
         this.force.y = 0;
-        const velocityLimit = 500;
-        if (this.velocity.x > velocityLimit)
-            this.velocity.x = velocityLimit
-        if (this.velocity.x < -velocityLimit)
-            this.velocity.x = -velocityLimit
-        if (this.velocity.y > velocityLimit)
-            this.velocity.y = velocityLimit
-        if (this.velocity.y < -velocityLimit)
-            this.velocity.y = -velocityLimit
+
+        const velocityLimit = 900;
+        if (this.velocity.magnitude() > velocityLimit) {
+            this.velocity.normalize().scale(velocityLimit);
+        }
+        const positionLimit = 2000;
+        if (this.position.magnitude() > positionLimit) {
+            this.position.normalize().scale(positionLimit);
+        }
     }
 
     // integrate(dt: number, gravity: Vec2) {

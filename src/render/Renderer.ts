@@ -1,43 +1,121 @@
-import { World } from "../core/World";
-import { ShapeType } from "../physics/Body";
-import { getAccelerationColor, getVelocityColor } from "../util/util";
+import { World } from "../core/World.js";
+import { Body, ShapeType } from "../physics/Body.js";
+import { getVelocityColor } from "../util/util.js";
+
+export enum RenderLayer {
+    Background,
+    Bodies,
+    Debug,
+}
 
 export class Renderer {
-    constructor(private ctx: CanvasRenderingContext2D) {
-        // this.ctx.fillStyle = "rgba(0, 0, 0, 1)";
-        // this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+    constructor(private ctx: CanvasRenderingContext2D) { }
+
+    draw(world: World, layers: RenderLayer[] = [RenderLayer.Bodies]) {
+        const ctx = this.ctx;
+        // ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        if (layers.includes(RenderLayer.Bodies)) {
+            this.drawBodies(world);
+        }
+
+        if (layers.includes(RenderLayer.Debug)) {
+            this.drawDebug(world);
+        }
     }
 
-    draw(world: World) {
-        this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-        // this.ctx.fillStyle = "rgba(0, 0, 0, 0.05)"; // adjust alpha for fade strength
-        // this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+    private drawBodies(world: World) {
+        const ctx = this.ctx;
+
+        ctx.save();
+        ctx.globalCompositeOperation = "darken";
+        ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.restore();
+
         for (const body of world.bodies) {
-            // if (body.render.color === "grey" || body.render.color === "red")
-            //     this.ctx.fillStyle = body.render.color;
-            // else
-            this.ctx.fillStyle = getVelocityColor(body.velocity.magnitude());
-            // this.ctx.fillStyle = getAccelerationColor(body.force.magnitude() * body.invMass, world.maxAcceleration);
-            if (body.shapeType === ShapeType.Box) {
-                this.ctx.fillRect(
-                    body.position.x - body.size.x / 2, // Subtract half width
-                    body.position.y - body.size.y / 2, // Subtract half height
-                    body.size.x,
-                    body.size.y
-                );
-            } else if (body.shapeType === ShapeType.Circle) {
-                this.ctx.beginPath(); // Start a new path
-                this.ctx.arc(
-                    body.position.x,
-                    body.position.y,
-                    body.radius,
-                    0,
-                    2 * Math.PI
-                );
-                this.ctx.fill(); // Actually draw the circle
-                this.ctx.closePath();
+            ctx.fillStyle = body.movable ? getVelocityColor(body.velocity.magnitude()) : body.render.color;
+
+            switch (body.shapeType) {
+                case ShapeType.Box:
+                    this.drawBox(body);
+                    break;
+
+                case ShapeType.Circle:
+                    this.drawCircle(body);
+                    break;
             }
         }
+    }
+
+    private drawBox(body: Body) {
+        const { x, y } = body.position;
+        const { x: w, y: h } = body.size;
+
+        this.ctx.fillRect(
+            x - w / 2,
+            y - h / 2,
+            w,
+            h
+        );
+    }
+
+    private drawCircle(body: Body) {
+        this.ctx.beginPath();
+        this.ctx.arc(
+            body.position.x,
+            body.position.y,
+            body.radius,
+            0,
+            Math.PI * 2
+        );
+        this.ctx.fill();
+    }
+
+    private drawDebug(world: World) {
+        const ctx = this.ctx;
+
+        for (const body of world.bodies) {
+            // Velocity vector
+            ctx.strokeStyle = "cyan";
+            ctx.beginPath();
+            ctx.moveTo(body.position.x, body.position.y);
+            ctx.lineTo(
+                body.position.x + body.velocity.x,
+                body.position.y + body.velocity.y
+            );
+            ctx.stroke();
+
+            // Acceleration (force)
+            ctx.strokeStyle = "orange";
+            ctx.beginPath();
+            ctx.moveTo(body.position.x, body.position.y);
+            ctx.lineTo(
+                body.position.x + body.force.x * 0.1,
+                body.position.y + body.force.y * 0.1
+            );
+            ctx.stroke();
+        }
+    }
+
+    beginCamera(camera: { x: number; y: number; zoom: number }) {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.translate(-camera.x, -camera.y);
+        ctx.scale(camera.zoom, camera.zoom);
+    }
+
+    endCamera() {
+        this.ctx.restore();
+    }
+
+    private isVisible(body: Body, width: number, height: number) {
+        return (
+            body.position.x + body.size.x > 0 &&
+            body.position.x - body.size.x < width &&
+            body.position.y + body.size.y > 0 &&
+            body.position.y - body.size.y < height
+        );
     }
 }
 
