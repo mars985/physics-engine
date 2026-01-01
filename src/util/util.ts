@@ -1,3 +1,5 @@
+import { Vec2 } from "../math/Vec2";
+
 // Utility helpers
 export function clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value));
@@ -12,10 +14,11 @@ export function getRandomInt(min: number, max: number): number {
 }
 
 // More pleasant random colors (pastel-ish)
-export function getRandomColor(): string {
-    const hue = getRandomInt(0, 360);
-    const saturation = getRandomInt(50, 70);
-    const lightness = getRandomInt(55, 75);
+export function getRandomColor(hueMin = 0, hueMax = 360): string {
+    let hue = getRandomInt(hueMin, hueMax);
+    hue = hue > 360 ? hue % 360 : hue;
+    const saturation = getRandomInt(55, 70);
+    const lightness = getRandomInt(50, 75);
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
@@ -32,4 +35,21 @@ export function getVelocityColor(
     const lightness = lerp(40, 60, t);
 
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+}
+
+export function generateOrbitVelocity(
+    sunPos: Vec2,
+    planetPos: Vec2,
+    sunMass: number,
+    G = 100
+): Vec2 {
+    const r = planetPos.clone().sub(sunPos);
+    const dist = r.magnitude();
+    const speed = Math.sqrt((G * sunMass) / dist);
+
+    // Tangential direction (rotate 90 degrees)
+    const tangent = new Vec2(-r.y, r.x).normalize();
+
+    // Final velocity vector
+    return tangent.scale(speed);
 }

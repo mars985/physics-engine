@@ -1,6 +1,5 @@
-import { Vec2 } from "../math/Vec2";
-import { Body } from "./Body";
-import { ShapeType } from "./Body";
+import { Vec2 } from "../math/Vec2.js";
+import { Body } from "./Body.js";
 
 export class CollisionManifold {
     public readonly normal: Vec2;

@@ -1,5 +1,4 @@
 import { Vec2 } from '../math/Vec2.js'
-import { RenderComponent } from '../render/Renderer.js';
 
 export enum ShapeType { Box, Circle };
 
@@ -27,7 +26,7 @@ export class Body {
     invMass: number;
     restitution: number;
     shapeType: ShapeType;
-    render: RenderComponent;
+    color: string;
     movable: boolean;
 
     force = new Vec2(0, 0);
@@ -57,16 +56,19 @@ export class Body {
         this.invMass = mass === 0 ? 0 : 1 / mass;
         this.restitution = restitution;
         this.shapeType = shapeType;
-        this.render = new RenderComponent(color);
+        this.color = color;
         this.movable = movable;
     }
 
-    integrate(dt: number) {
+    integrate(dt: number, damping = 1) {
         const accelerationX = this.force.x * this.invMass;
         const accelerationY = this.force.y * this.invMass;
 
         this.velocity.x += accelerationX * dt;
         this.velocity.y += accelerationY * dt;
+        this.velocity.x *= damping;
+        this.velocity.y *= damping;
+
         this.position.x += this.velocity.x * dt;
         this.position.y += this.velocity.y * dt;
 
@@ -82,25 +84,4 @@ export class Body {
             this.position.normalize().scale(positionLimit);
         }
     }
-
-    // integrate(dt: number, gravity: Vec2) {
-    //     this.velocity.x += gravity.x * dt;
-    //     this.velocity.y += gravity.y * dt;
-
-    //     // const damping = 0.99;
-    //     const damping = 1;
-    //     this.velocity.x *= damping;
-    //     this.velocity.y *= damping;
-
-    //     // const velocityThreshold = 0.01;
-    //     // if (Math.abs(this.velocity.x) < velocityThreshold)
-    //     //     this.velocity.x = 0;
-    //     // if (Math.abs(this.velocity.y) < velocityThreshold)
-    //     //     this.velocity.y = 0;
-
-    //     this.position.x += this.velocity.x * dt;
-    //     this.position.y += this.velocity.y * dt;
-
-    //     // console.log(this.mass + " " + this.position + " " + this.velocity);
-    // }
 }

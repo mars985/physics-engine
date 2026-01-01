@@ -29,7 +29,7 @@ export class Vec2 {
         return this.x * v.x + this.y * v.y;
     }
     magnitude() {
-        return Math.sqrt(this.x * this.x + this.y * this.y);
+        return Math.hypot(this.x, this.y);
     }
     normalize() {
         const mag = this.magnitude();

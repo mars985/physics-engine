@@ -3,60 +3,81 @@ import { Resolution } from "../physics/Resolution.js";
 import { Vec2 } from "../math/Vec2.js";
 import { Collision, CollisionManifold } from "../physics/Collision.js";
 
-
 export class World {
     bodies: Body[] = [];
-    gravity = new Vec2(0, 600);
+    gravity = new Vec2();
+    damping = 1;
 
     enable_collisions = false;
     enable_mutual_gravity = false;
+    enable_movable_mutual_gravity = false;
 
     maxAcceleration = 0;        // current frame
     smoothedMaxAcceleration = 1; // for visualization
 
-    add(body: Body) {
-        this.bodies.push(body);
+    add(body: Body): void;
+    add(...bodies: Body[]): void;
+    add(...bodies: Body[]): void {
+        this.bodies.push(...bodies);
     }
+    
     remove(i: number) {
         this.bodies.splice(i, 1);
     }
 
-    step(dt: number) {
-        if (this.enable_mutual_gravity)
-            this.applyMutualGravity();   // Objects pulling each other
+    clear() {
+        this.bodies.length = 0;
+        this.enable_collisions = false;
+        this.enable_mutual_gravity = false;
+        this.enable_movable_mutual_gravity = false;
+        this.gravity.x = 0;
+        this.gravity.y = 0;
+    }
 
-        this.integrateBodies(dt);      // Move objects based on velocity
+    step(dt: number) {
+        if (this.enable_mutual_gravity || this.enable_movable_mutual_gravity)
+            this.applyMutualGravity();
+
+        this.integrateBodies(dt);
 
         if (this.enable_collisions)
-            this.handleCollisions();       // Optional: prevent overlapping
+            this.handleCollisions();
     }
 
     private applyMutualGravity() {
         const G = 100;
         const softening = 25;
-        let i = this.bodies.length - 1;
-        while (i >= 0 && !this.bodies[i].movable) {
-            // for (i = 0; i < this.bodies.length; i++) {
-            for (let j = i - 1; j >= 0; j--) {
-                const a = this.bodies[i];
+        const minForceThreshold = 0.0001; // Adjust based on desired precision
+
+        let i = 0;
+        while (i < this.bodies.length && (!this.bodies[i].movable || this.enable_movable_mutual_gravity)) {
+            const a = this.bodies[i];
+
+            for (let j = i + 1; j < this.bodies.length; j++) {
                 const b = this.bodies[j];
 
-                const delta = b.position.clone().sub(a.position);
-                const distSq = delta.x * delta.x + delta.y * delta.y + softening;
-                const dist = Math.sqrt(distSq); //< 100 ? 100 : Math.sqrt(distSq);
+                const massProduct = a.mass * b.mass;
+                if (massProduct < 0.000001) continue;
 
-                // const MAX_RANGE = 100000;
-                // const maxDistSq = MAX_RANGE * MAX_RANGE;
-                // if (distSq > maxDistSq) continue;
+                const dx = b.position.x - a.position.x;
+                const dy = b.position.y - a.position.y;
+                const distSq = dx * dx + dy * dy + softening;
 
+                if ((G * massProduct) / distSq < minForceThreshold && !(this.enable_movable_mutual_gravity && this.enable_mutual_gravity)) continue;
+
+                const dist = Math.sqrt(distSq);
                 const invDist = 1 / dist;
-                const forceMag = G * a.mass * b.mass * invDist * invDist;
-                const force = delta.scale(forceMag / dist);
+                const forceMag = G * massProduct * invDist * invDist;
 
-                a.force.add(force);
-                b.force.sub(force);
+                const forceX = dx * (forceMag * invDist);
+                const forceY = dy * (forceMag * invDist);
+
+                a.force.x += forceX;
+                a.force.y += forceY;
+                b.force.x -= forceX;
+                b.force.y -= forceY;
             }
-            i--;
+            i++;
         }
     }
 
@@ -65,20 +86,20 @@ export class World {
 
         for (const body of this.bodies) {
             if (!body.movable || body.mass === 0) continue;
+            body.force.add(this.gravity.clone().scale(body.mass));
 
             const ax = body.force.x * body.invMass;
             const ay = body.force.y * body.invMass;
 
-            const acc = Math.sqrt(ax * ax + ay * ay);
+            const acc = Math.hypot(ax, ay);
             frameMaxAcc = Math.max(frameMaxAcc, acc);
 
-            body.integrate(dt);
+            body.integrate(dt, this.damping);
         }
 
         // Smooth it to avoid flickering colors
         const SMOOTHING = 0.1;
-        this.smoothedMaxAcceleration +=
-            (frameMaxAcc - this.smoothedMaxAcceleration) * SMOOTHING;
+        this.smoothedMaxAcceleration += (frameMaxAcc - this.smoothedMaxAcceleration) * SMOOTHING;
     }
 
 
@@ -94,7 +115,8 @@ export class World {
     }
 
     private solveCollision(a: Body, b: Body) {
-        let manifold = null;
+        let manifold: CollisionManifold | null = null;
+        
         if (a.shapeType === ShapeType.Box && b.shapeType === ShapeType.Box)
             manifold = Collision.AABBvsAABB(a, b);
         else if (a.shapeType === ShapeType.Circle && b.shapeType === ShapeType.Circle)

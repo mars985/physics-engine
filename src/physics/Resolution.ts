@@ -1,6 +1,5 @@
-import { Vec2 } from "../math/Vec2";
-import { Body } from "./Body";
-import { CollisionManifold } from "./Collision";
+import { Body } from "./Body.js";
+import { CollisionManifold } from "./Collision.js";
 
 export class Resolution {
     static resolve(a: Body, b: Body, m: CollisionManifold) {

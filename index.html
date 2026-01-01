@@ -15,10 +15,39 @@
       canvas {
         display: block;
       }
+      
+      #ui {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        display: flex;
+        gap: 8px;
+        z-index: 10;
+      }
+
+      #ui button {
+        padding: 6px 10px;
+        background: #222;
+        color: white;
+        border: 1px solid #444;
+        cursor: pointer;
+      }
+
+      #ui button:hover {
+        background: #444;
+      }
     </style>
   </head>
 
   <body>
+    <div id="ui">
+      <button data-scene="gravity">Gravity</button>
+      <button data-scene="zero">Zero Gravity</button>
+      <button data-scene="attraction">Attraction</button>
+      <button data-scene="spirals">Spirals</button>
+      <button data-scene="polka">Polka</button>
+    </div>
+
     <canvas id="canvas"></canvas>
     <script type="module" src="/src/main.ts"></script>
   </body>
