@@ -4,6 +4,11 @@ export class Vec2 {
     clone(): Vec2 {
         return new Vec2(this.x, this.y);
     }
+    set(x: number, y: number): Vec2 {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
 
     add(v: Vec2) {
         this.x += v.x;
@@ -27,6 +32,9 @@ export class Vec2 {
     }
     dot(v: Vec2) {
         return this.x * v.x + this.y * v.y;
+    }
+    cross(v: Vec2): number {
+        return this.x * v.y - this.y * v.x;
     }
     magnitude() {
         return Math.hypot(this.x, this.y);

@@ -8,37 +8,36 @@ const height = window.innerHeight;
 const wallThickness = 120;
 
 export class Scenes {
-    static loadScene(name: string, world: World) {
-        world.clear();
-        switch (name) {
-            case "gravity":
-                Scenes.gravitySandbox(world);
-                break;
-            case "zero":
-                Scenes.zeroGravity(world);
-                break;
-            case "attraction":
-                Scenes.attraction(world);
-                break;
-            case "spirals":
-                Scenes.spirals(world);
-                break;
-            case "polka":
-                Scenes.polka(world);
-                break;
-        }
-    }
-    
-    static addBoundaries(world: World, restitution = 1, color = "hsl(217 56% 34.2%)") {
+    static addBoundaries(
+        world: World,
+        restitution = 1,
+        wallThickness = 120,
+        color = "hsl(217 56% 34.2%)"
+    ) {
         const w = window.innerWidth;
         const h = window.innerHeight;
 
-        world.add(
-            new Body({ x: w * 0.5, y: -wallThickness * 0.35, w: w * 2, h: wallThickness, mass: 0, restitution, movable: false, color: color }),
-            new Body({ x: w * 0.5, y: h + wallThickness * 0.35, w: w * 2, h: wallThickness, mass: 0, restitution, movable: false, color: color }),
-            new Body({ x: -wallThickness * 0.35, y: h * 0.5, w: wallThickness, h: h * 2, mass: 0, restitution, movable: false, color: color }),
-            new Body({ x: w + wallThickness * 0.35, y: h * 0.5, w: wallThickness, h: h * 2, mass: 0, restitution, movable: false, color: color })
-        );
+        const createWall = (x: number, y: number, width: number, height: number) =>
+            new Body({
+                x,
+                y,
+                w: width,
+                h: height,
+                mass: 0,
+                restitution,
+                movable: false,
+                color,
+                shapeType: ShapeType.Polygon
+            });
+
+        const walls = [
+            createWall(w * 0.5, -wallThickness * 0.35, w * 2, wallThickness),
+            createWall(w * 0.5, h + wallThickness * 0.35, w * 2, wallThickness),
+            createWall(-wallThickness * 0.35, h * 0.5, wallThickness, h * 2),
+            createWall(w + wallThickness * 0.35, h * 0.5, wallThickness, h * 2),
+        ];
+
+        world.add(...walls);
     }
 
     static gravitySandbox(world: World, bodies = 30) {
@@ -86,7 +85,7 @@ export class Scenes {
         }
     }
 
-    static attraction(world: World, bodies = 400) {
+    static attraction(world: World, bodies = 150) {
         world.enable_collisions = true;
         world.enable_movable_mutual_gravity = true;
         world.enable_mutual_gravity = true;
@@ -95,13 +94,11 @@ export class Scenes {
 
         for (let i = 0; i < bodies; i++) {
             world.add(new Body({
-                shapeType: ShapeType.Circle,
+                shapeType: ShapeType.Polygon,
                 x: getRandomInt(wallThickness, width - wallThickness),
                 y: getRandomInt(wallThickness, height - wallThickness),
-                w: 20,
-                h: 20,
-                r: 7,
-                mass: getRandomInt(50, 50),
+                vertices: Body.createRegularPolygon(6, 25),
+                mass: 150,
                 color: "velocity",
                 restitution: 0.9
             }));
@@ -164,7 +161,7 @@ export class Scenes {
                     color: "rainbow"
                 });
 
-                planet.velocity = generateOrbitVelocity(
+                planet.linear_velocity = generateOrbitVelocity(
                     sun.position,
                     planet.position,
                     sun.mass
@@ -217,7 +214,7 @@ export class Scenes {
                     color: "rainbow",
                 });
 
-                planet.velocity = generateOrbitVelocity(
+                planet.linear_velocity = generateOrbitVelocity(
                     sun.position,
                     planet.position,
                     sun.mass
@@ -227,5 +224,29 @@ export class Scenes {
             }
         }
 
+    }
+
+    static stacks(world: World) {
+        const bodies = 100;
+        const speed=75;
+        Scenes.addBoundaries(world);
+        world.enable_collisions = true;
+        // world.enable_movable_mutual_gravity=true;
+        // world.gravity.y = 100;
+
+        for (let i = 0; i < bodies; i++) {
+            world.add(new Body({
+                shapeType: ShapeType.Polygon,
+                x: getRandomInt(wallThickness, width - wallThickness),
+                y: getRandomInt(wallThickness, height - wallThickness),
+                vertices: Body.createRegularPolygon(getRandomInt(5, 6), 25),
+                vx: getRandomInt(-speed, speed),
+                vy: getRandomInt(-speed, speed),
+                angv: Math.PI * 0.5,
+                restitution: 1,
+                mass: 100,
+                color: getRandomColor(120, 180),
+            }));
+        }
     }
 };

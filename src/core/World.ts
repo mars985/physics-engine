@@ -20,7 +20,7 @@ export class World {
     add(...bodies: Body[]): void {
         this.bodies.push(...bodies);
     }
-    
+
     remove(i: number) {
         this.bodies.splice(i, 1);
     }
@@ -117,12 +117,10 @@ export class World {
     private solveCollision(a: Body, b: Body) {
         let manifold: CollisionManifold | null = null;
         
-        if (a.shapeType === ShapeType.Box && b.shapeType === ShapeType.Box)
-            manifold = Collision.AABBvsAABB(a, b);
-        else if (a.shapeType === ShapeType.Circle && b.shapeType === ShapeType.Circle)
+        if (a.shapeType === ShapeType.Circle && b.shapeType === ShapeType.Circle)
             manifold = Collision.CircleVsCircle(a, b);
-        else if (a.shapeType === ShapeType.Box && b.shapeType === ShapeType.Circle)
-            manifold = Collision.CircleVsAABB(b, a);
+        else
+            manifold = Collision.SAT(a, b);
 
         if (manifold) {
             Resolution.resolve(a, b, manifold);

@@ -7,11 +7,41 @@ import { Scenes } from "./core/Scenes.js";
 // -------- WORLD --------
 
 const world = new World();
-// Scenes.gravitySandbox(world);
-// Scenes.zeroGravity(world);
-// Scenes.attraction(world);
-// Scenes.spirals(world);
-Scenes.polka(world);
+
+const SCENE_STORAGE_KEY = "current_scene";
+const sceneConfig = [
+  { id: "gravity", label: "Gravity", fn: Scenes.gravitySandbox },
+  { id: "zero", label: "Zero Gravity", fn: Scenes.zeroGravity },
+  { id: "attraction", label: "Attraction", fn: Scenes.attraction },
+  { id: "spirals", label: "Spirals", fn: Scenes.spirals },
+  { id: "polka", label: "Polka", fn: Scenes.polka },
+  { id: "stacks", label: "Stacks", fn: Scenes.stacks },
+];
+
+const ui = document.getElementById("ui");
+sceneConfig.forEach(scene => {
+  const button = document.createElement("button");
+  button.textContent = scene.label;
+  button.dataset.scene = scene.id;
+
+  button.addEventListener("click", () => {
+    world.clear();
+    scene.fn(world);
+    localStorage.setItem(SCENE_STORAGE_KEY, scene.id);
+    setActive(button);
+  });
+
+  ui!.appendChild(button);
+});
+function setActive(activeBtn: HTMLButtonElement) {
+  document
+    .querySelectorAll("#ui button")
+    .forEach(btn => btn.classList.toggle("active", btn === activeBtn));
+}
+
+const savedScene = localStorage.getItem(SCENE_STORAGE_KEY) ?? "stacks";
+const initialScene = sceneConfig.find(s => s.id === savedScene) ?? sceneConfig[0];
+initialScene.fn(world);
 
 // -------- RENDERING -------- 
 
@@ -53,13 +83,6 @@ let Mouse = new Vec2();
 document.addEventListener("mousemove", (event: MouseEvent) => {
   Mouse.x = event.clientX;
   Mouse.y = event.clientY;
-});
-
-document.querySelectorAll("#ui button").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const scene = btn.getAttribute("data-scene")!;
-    Scenes.loadScene(scene, world);
-  });
 });
 
 function resume() {

@@ -21,7 +21,7 @@ export class Renderer {
         for (const body of world.bodies) {
             switch (body.color) {
                 case "velocity":
-                    ctx.fillStyle = getVelocityColor(body.velocity.magnitude());
+                    ctx.fillStyle = getVelocityColor(body.linear_velocity.magnitude());
                     break;
                 case "rainbow":
                     ctx.fillStyle = `hsl(${this.hue / 5}, ${70}%, ${60}%)`;
@@ -30,28 +30,12 @@ export class Renderer {
                     ctx.fillStyle = body.color;
             }
 
-            switch (body.shapeType) {
-                case ShapeType.Box:
-                    this.drawBox(body);
-                    break;
+            if (body.shapeType === ShapeType.Circle)
+                this.drawCircle(body);
+            else
+                this.drawPolygon(body);
 
-                case ShapeType.Circle:
-                    this.drawCircle(body);
-                    break;
-            }
         }
-    }
-
-    private drawBox(body: Body) {
-        const { x, y } = body.position;
-        const { x: w, y: h } = body.size;
-
-        this.ctx.fillRect(
-            x - w / 2,
-            y - h / 2,
-            w,
-            h,
-        );
     }
 
     private drawCircle(body: Body) {
@@ -64,5 +48,26 @@ export class Renderer {
             Math.PI * 2
         );
         this.ctx.fill();
+    }
+
+    private drawPolygon(body: Body) {
+        const ctx = this.ctx;
+        const { x, y } = body.position;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(body.incline);
+
+        ctx.beginPath();
+        ctx.moveTo(body.vertices[0].x, body.vertices[0].y);
+
+        for (let i = 1; i < body.vertices.length; i++) {
+            const v = body.vertices[i];
+            ctx.lineTo(v.x, v.y);
+        }
+
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
     }
 }

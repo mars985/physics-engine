@@ -19,7 +19,7 @@ export class Resolution {
 
         // --- VELOCITY RESOLUTION (Impulse) ---
         // 1. Relative Velocity (B relative to A)
-        const rv = b.velocity.clone().sub(a.velocity);
+        const rv = b.linear_velocity.clone().sub(a.linear_velocity);
 
         // 2. Velocity along normal
         const velAlongNormal = rv.dot(m.normal);
@@ -29,15 +29,17 @@ export class Resolution {
 
         // 4. Calculate impulse magnitude
         let e = Math.min(a.restitution, b.restitution);
-        if (velAlongNormal > -1) {
-            e = 0; // resting contact
+        const RESTING_VELOCITY = 0.5;
+        if (Math.abs(velAlongNormal) < RESTING_VELOCITY) {
+            e = 0;
         }
+
         let j = -(1 + e) * velAlongNormal;
         j /= (a.invMass + b.invMass);
 
         // 5. Apply impulse (A gets negative, B gets positive)
         const impulse = m.normal.clone().scale(j);
-        a.velocity.sub(impulse.clone().scale(a.invMass));
-        b.velocity.add(impulse.clone().scale(b.invMass));
+        a.linear_velocity.sub(impulse.clone().scale(a.invMass));
+        b.linear_velocity.add(impulse.clone().scale(b.invMass));
     }
 }
