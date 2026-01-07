@@ -9,14 +9,14 @@ export class CollisionManifold {
     ) { }
 }
 
-type AABB = {
+export type AABB = {
     min: Vec2;
     max: Vec2;
 };
 
 export class Collision {
 
-    /* ===================== AABB ===================== */
+    /* ===================== Broad Phase ===================== */
 
     static computeAABB(body: Body): AABB {
         if (body.shapeType === ShapeType.Circle) {
@@ -43,6 +43,37 @@ export class Collision {
             max: new Vec2(maxX, maxY),
         };
     }
+
+    static spacePartitioning(bodies: Body[], cellSize = 100) {
+        const grid = new Map<string, Body[]>();
+
+        function cellKey(x: number, y: number) {
+            return `${x},${y}`;
+        }
+
+        for (const body of bodies) {
+            const aabb = this.computeAABB(body);
+
+            const minCellX = Math.floor(aabb.min.x / cellSize);
+            const minCellY = Math.floor(aabb.min.y / cellSize);
+            const maxCellX = Math.floor(aabb.max.x / cellSize);
+            const maxCellY = Math.floor(aabb.max.y / cellSize);
+
+            for (let x = minCellX; x <= maxCellX; x++) {
+                for (let y = minCellY; y <= maxCellY; y++) {
+                    const key = cellKey(x, y);
+                    if (!grid.has(key)) {
+                        grid.set(key, []);
+                    }
+                    grid.get(key)!.push(body);
+                }
+            }
+        }
+
+        return grid;
+    }
+
+    /* ===================== Narrow Phase ===================== */
 
     static pointVsAABB(point: Vec2, body: Body): boolean {
         const { min, max } = this.computeAABB(body);

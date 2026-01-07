@@ -1,6 +1,6 @@
 import { World } from "../core/World.js";
 import { Body, ShapeType } from "../physics/Body.js";
-import { getRandomColor, getVelocityColor } from "../util/util.js";
+import { extractVelocityHue, getRandomColor, getVelocityColor } from "../util/util.js";
 
 export class Renderer {
     constructor(private ctx: CanvasRenderingContext2D) { }
@@ -19,16 +19,13 @@ export class Renderer {
         ctx.restore();
 
         for (const body of world.bodies) {
-            switch (body.color) {
-                case "velocity":
-                    ctx.fillStyle = getVelocityColor(body.linear_velocity.magnitude());
-                    break;
-                case "rainbow":
-                    ctx.fillStyle = `hsl(${this.hue / 5}, ${70}%, ${60}%)`;
-                    break;
-                default:
-                    ctx.fillStyle = body.color;
-            }
+            if (body.color.includes("velocity"))
+                ctx.fillStyle = getVelocityColor(body.linear_velocity.magnitude(), extractVelocityHue(body.color));
+            else if (body.color == "rainbow")
+                ctx.fillStyle = `hsl(${this.hue / 5}, ${70}%, ${60}%)`;
+            else
+                ctx.fillStyle = body.color;
+
 
             if (body.shapeType === ShapeType.Circle)
                 this.drawCircle(body);

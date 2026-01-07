@@ -96,30 +96,29 @@ export class Body {
     }
 
     integrate(dt: number, damping = 1) {
+        if (!this.movable) return;
         const accelerationX = this.force.x * this.invMass;
         const accelerationY = this.force.y * this.invMass;
 
         this.linear_velocity.x += accelerationX * dt;
         this.linear_velocity.y += accelerationY * dt;
-        this.linear_velocity.x *= damping;
-        this.linear_velocity.y *= damping;
 
         this.incline += this.angular_velocity * dt;
-        this.angular_velocity *= damping;
 
         this.position.x += this.linear_velocity.x * dt;
         this.position.y += this.linear_velocity.y * dt;
+
+        this.linear_velocity.x *= damping;
+        this.linear_velocity.y *= damping;
+        this.angular_velocity *= damping;
 
         this.force.x = 0;
         this.force.y = 0;
 
         const velocityLimit = 900;
-        if (this.linear_velocity.magnitude() > velocityLimit) {
-            this.linear_velocity.normalize().scale(velocityLimit);
-        }
-        const positionLimit = 2000;
-        if (this.position.magnitude() > positionLimit) {
-            this.position.normalize().scale(positionLimit);
+        const speed = this.linear_velocity.magnitude();
+        if (speed > velocityLimit) {
+            this.linear_velocity.scale(velocityLimit / speed);
         }
     }
 
@@ -173,7 +172,7 @@ export class Body {
         ];
     }
 
-    private computeInertia():number {
+    private computeInertia(): number {
         // Approximate inertia for polygon using bounding box
         let minX = this.vertices[0].x, maxX = this.vertices[0].x;
         let minY = this.vertices[0].y, maxY = this.vertices[0].y;

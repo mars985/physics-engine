@@ -22,17 +22,24 @@ export function getRandomColor(hueMin = 0, hueMax = 360): string {
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
-// Velocity → Color (blue → red)
+export function extractVelocityHue(color: string, defaultHue = 240): number {
+    const match = color.match(/velocity(-?\d+(\.\d+)?)/);
+    if (!match) return defaultHue;
+    return Number(match[1]);
+}
+
 export function getVelocityColor(
     velocity: number,
-    maxVelocity = 1000
+    baseHue = 270,
+    maxVelocity = 350,
+    hueRange = 30
 ): string {
     const t = clamp(velocity / maxVelocity, 0, 1);
 
-    // Blue (240°) → Red (0°)
-    const hue = lerp(240, 0, t);
-    const saturation = 70;
-    const lightness = lerp(40, 60, t);
+    const hue = baseHue + lerp(-hueRange, hueRange, t);
+
+    const saturation = lerp(65, 85, t);
+    const lightness = lerp(50, 65, t);
 
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }

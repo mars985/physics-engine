@@ -85,7 +85,7 @@ export class Scenes {
         }
     }
 
-    static attraction(world: World, bodies = 150) {
+    static attraction(world: World, bodies = 800) {
         world.enable_collisions = true;
         world.enable_movable_mutual_gravity = true;
         world.enable_mutual_gravity = true;
@@ -94,17 +94,18 @@ export class Scenes {
 
         for (let i = 0; i < bodies; i++) {
             world.add(new Body({
-                shapeType: ShapeType.Polygon,
+                shapeType: ShapeType.Circle,
                 x: getRandomInt(wallThickness, width - wallThickness),
                 y: getRandomInt(wallThickness, height - wallThickness),
-                vertices: Body.createRegularPolygon(6, 25),
-                mass: 150,
-                color: "velocity",
+                vertices: Body.createRegularPolygon(6, 5),
+                r: 5,
+                mass: 100,
+                color: "velocity270",
                 restitution: 0.9
             }));
         }
         const speed = 300;
-        const large = 0;
+        const large = 1;
         for (let i = 0; i < large; i++) {
             world.add(new Body({
                 shapeType: ShapeType.Circle,
@@ -115,9 +116,9 @@ export class Scenes {
                 w: 20,
                 h: 20,
                 r: 20,
-                mass: 5000,
+                mass: 50000,
                 color: "velocity",
-                restitution: 0.9
+                restitution: 1
             }));
         }
     }
@@ -226,26 +227,52 @@ export class Scenes {
 
     }
 
-    static stacks(world: World) {
-        const bodies = 100;
-        const speed=75;
-        Scenes.addBoundaries(world);
+    static stacks(world: World, bodies = 500) {
         world.enable_collisions = true;
-        // world.enable_movable_mutual_gravity=true;
-        // world.gravity.y = 100;
+        Scenes.addBoundaries(world);
+        
+        let t = 0;
+        const baseGravity = 100;     // average gravity
+        const amplitude = 300;      // oscillation strength
+        const frequency = 0.4;      // Hz (cycles per second)
+
+        world.customCallback = (dt: number) => {
+            t += dt;
+            world.gravity.y =
+                baseGravity +
+                amplitude * Math.sin(2 * Math.PI * frequency * t);
+        };
+
 
         for (let i = 0; i < bodies; i++) {
             world.add(new Body({
                 shapeType: ShapeType.Polygon,
                 x: getRandomInt(wallThickness, width - wallThickness),
                 y: getRandomInt(wallThickness, height - wallThickness),
-                vertices: Body.createRegularPolygon(getRandomInt(5, 6), 25),
-                vx: getRandomInt(-speed, speed),
-                vy: getRandomInt(-speed, speed),
-                angv: Math.PI * 0.5,
-                restitution: 1,
+                vertices: Body.createRegularPolygon(getRandomInt(4, 4), 25),
+                restitution: 0.9,
                 mass: 100,
-                color: getRandomColor(120, 180),
+                // color: getRandomColor(240, 360),
+                color:"velocity210"
+            }));
+        }
+    }
+
+    static honeycomb(world: World, bodies = 120) {
+        Scenes.addBoundaries(world);
+        world.enable_collisions = true;
+        world.enable_movable_mutual_gravity = true;
+        world.enable_mutual_gravity = true;
+
+        for (let i = 0; i < bodies; i++) {
+            world.add(new Body({
+                shapeType: ShapeType.Polygon,
+                x: getRandomInt(wallThickness, width - wallThickness),
+                y: getRandomInt(wallThickness, height - wallThickness),
+                vertices: Body.createRegularPolygon(6, 25),
+                restitution: 0.9,
+                mass: 2000,
+                color: "velocity",
             }));
         }
     }

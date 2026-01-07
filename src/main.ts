@@ -16,6 +16,7 @@ const sceneConfig = [
   { id: "spirals", label: "Spirals", fn: Scenes.spirals },
   { id: "polka", label: "Polka", fn: Scenes.polka },
   { id: "stacks", label: "Stacks", fn: Scenes.stacks },
+  { id: "honeycomb", label: "Honeycomb", fn: Scenes.honeycomb },
 ];
 
 const ui = document.getElementById("ui");

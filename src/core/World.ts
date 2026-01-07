@@ -2,9 +2,13 @@ import { Body, ShapeType } from "../physics/Body.js";
 import { Resolution } from "../physics/Resolution.js";
 import { Vec2 } from "../math/Vec2.js";
 import { Collision, CollisionManifold } from "../physics/Collision.js";
+import { QuadTree } from "../physics/QuadTree.js";
 
 export class World {
     bodies: Body[] = [];
+    private grid: Map<string, Body[]> = new Map();
+    cellSize = 150;
+
     gravity = new Vec2();
     damping = 1;
 
@@ -14,6 +18,8 @@ export class World {
 
     maxAcceleration = 0;        // current frame
     smoothedMaxAcceleration = 1; // for visualization
+
+    customCallback!: Function | null;
 
     add(body: Body): void;
     add(...bodies: Body[]): void;
@@ -32,9 +38,12 @@ export class World {
         this.enable_movable_mutual_gravity = false;
         this.gravity.x = 0;
         this.gravity.y = 0;
+        this.customCallback = null;
     }
 
     step(dt: number) {
+        this.grid = Collision.spacePartitioning(this.bodies, this.cellSize);
+
         if (this.enable_mutual_gravity || this.enable_movable_mutual_gravity)
             this.applyMutualGravity();
 
@@ -42,42 +51,35 @@ export class World {
 
         if (this.enable_collisions)
             this.handleCollisions();
+
+        if (this.customCallback != null)
+            this.customCallback(dt);
     }
 
     private applyMutualGravity() {
+        if (!this.enable_mutual_gravity) return;
+
         const G = 100;
         const softening = 25;
-        const minForceThreshold = 0.0001; // Adjust based on desired precision
+        const theta = 0.7;
 
-        let i = 0;
-        while (i < this.bodies.length && (!this.bodies[i].movable || this.enable_movable_mutual_gravity)) {
-            const a = this.bodies[i];
+        // Build QuadTree
+        const root = new QuadTree(
+            new Vec2(0, 0),
+            new Vec2(2000, 2000)
+        );
 
-            for (let j = i + 1; j < this.bodies.length; j++) {
-                const b = this.bodies[j];
-
-                const massProduct = a.mass * b.mass;
-                if (massProduct < 0.000001) continue;
-
-                const dx = b.position.x - a.position.x;
-                const dy = b.position.y - a.position.y;
-                const distSq = dx * dx + dy * dy + softening;
-
-                if ((G * massProduct) / distSq < minForceThreshold && !(this.enable_movable_mutual_gravity && this.enable_mutual_gravity)) continue;
-
-                const dist = Math.sqrt(distSq);
-                const invDist = 1 / dist;
-                const forceMag = G * massProduct * invDist * invDist;
-
-                const forceX = dx * (forceMag * invDist);
-                const forceY = dy * (forceMag * invDist);
-
-                a.force.x += forceX;
-                a.force.y += forceY;
-                b.force.x -= forceX;
-                b.force.y -= forceY;
+        for (const body of this.bodies) {
+            // Same filtering as before
+            if (!body.movable || this.enable_movable_mutual_gravity) {
+                root.insert(body);
             }
-            i++;
+        }
+
+        // Apply forces
+        for (const body of this.bodies) {
+            if (!body.movable && !this.enable_movable_mutual_gravity) continue;
+            root.computeForce(body, theta, G, softening);
         }
     }
 
@@ -104,19 +106,21 @@ export class World {
 
 
     private handleCollisions() {
-        for (let i = 0; i < this.bodies.length; i++) {
-            for (let j = i + 1; j < this.bodies.length; j++) {
-                const a = this.bodies[i];
-                const b = this.bodies[j];
+        for (const cell of this.grid.values()) {
+            for (let i = 0; i < cell.length; i++) {
+                for (let j = i + 1; j < cell.length; j++) {
+                    const a = cell[i];
+                    const b = cell[j];
 
-                this.solveCollision(a, b);
+                    this.solveCollision(a, b);
+                }
             }
         }
     }
 
     private solveCollision(a: Body, b: Body) {
         let manifold: CollisionManifold | null = null;
-        
+
         if (a.shapeType === ShapeType.Circle && b.shapeType === ShapeType.Circle)
             manifold = Collision.CircleVsCircle(a, b);
         else
