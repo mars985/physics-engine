@@ -39,6 +39,9 @@ export class Vec2 {
     magnitude() {
         return Math.hypot(this.x, this.y);
     }
+    magnitudeSq() {
+        return this.x * this.x + this.y * this.y;
+    }
     normalize() {
         const mag = this.magnitude();
         if (mag > 0) {

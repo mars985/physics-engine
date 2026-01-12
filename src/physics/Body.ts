@@ -34,11 +34,11 @@ export class Body {
     vertices: Vec2[] = []; // local-space
     radius = 0;
 
-    mass: number;
-    invMass: number;
-    inertia: number;
-    invInertia: number;
-    restitution: number;
+    readonly mass: number;
+    readonly invMass: number;
+    readonly inertia: number;
+    readonly invInertia: number;
+    readonly restitution: number;
 
     shapeType: ShapeType;
     color: string;

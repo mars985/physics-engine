@@ -128,6 +128,7 @@ export class World {
 
         if (manifold) {
             Resolution.resolve(a, b, manifold);
+            // Resolution.resolveWithRotation(a, b, manifold);
         }
     }
 }

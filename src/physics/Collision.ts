@@ -5,7 +5,7 @@ export class CollisionManifold {
     constructor(
         public readonly normal: Vec2,
         public readonly penetration: number,
-        public readonly contactPoint: Vec2
+        public readonly contactList: Vec2[]
     ) { }
 }
 
@@ -75,34 +75,6 @@ export class Collision {
 
     /* ===================== Narrow Phase ===================== */
 
-    static pointVsAABB(point: Vec2, body: Body): boolean {
-        const { min, max } = this.computeAABB(body);
-        return (
-            point.x >= min.x && point.x <= max.x &&
-            point.y >= min.y && point.y <= max.y
-        );
-    }
-
-    static AABBvsAABB(a: Body, b: Body): CollisionManifold | null {
-        const A = this.computeAABB(a);
-        const B = this.computeAABB(b);
-
-        const overlapX = Math.min(A.max.x, B.max.x) - Math.max(A.min.x, B.min.x);
-        const overlapY = Math.min(A.max.y, B.max.y) - Math.max(A.min.y, B.min.y);
-
-        if (overlapX <= 0 || overlapY <= 0) return null;
-
-        if (overlapX < overlapY) {
-            const nx = a.position.x < b.position.x ? 1 : -1;
-            return new CollisionManifold(new Vec2(nx, 0), overlapX, new Vec2());
-        } else {
-            const ny = a.position.y < b.position.y ? 1 : -1;
-            return new CollisionManifold(new Vec2(0, ny), overlapY, new Vec2());
-        }
-    }
-
-    /* ===================== CIRCLE ===================== */
-
     static CircleVsCircle(a: Body, b: Body): CollisionManifold | null {
         const delta = b.position.clone().sub(a.position);
         const dist = delta.magnitude();
@@ -112,33 +84,8 @@ export class Collision {
 
         const normal = dist !== 0 ? delta.scale(1 / dist) : new Vec2(0, 1);
         const penetration = r - dist;
-        const contact = a.position.clone().add(normal.clone().scale(a.radius!));
-
-        return new CollisionManifold(normal, penetration, contact);
+        return new CollisionManifold(normal, penetration, computeContactPoints(a, b, normal));
     }
-
-    static CircleVsAABB(circle: Body, box: Body): CollisionManifold | null {
-        const { min, max } = this.computeAABB(box);
-
-        const cx = Math.max(min.x, Math.min(circle.position.x, max.x));
-        const cy = Math.max(min.y, Math.min(circle.position.y, max.y));
-
-        const dx = circle.position.x - cx;
-        const dy = circle.position.y - cy;
-
-        const distSq = dx * dx + dy * dy;
-        const r = circle.radius!;
-
-        if (distSq >= r * r) return null;
-
-        const dist = Math.sqrt(distSq);
-        const normal = dist !== 0 ? new Vec2(dx / dist, dy / dist) : new Vec2(0, 1);
-        const penetration = r - dist;
-
-        return new CollisionManifold(normal, penetration, new Vec2(cx, cy));
-    }
-
-    /* ===================== SAT ===================== */
 
     static SAT(a: Body, b: Body): CollisionManifold | null {
         const axes: Vec2[] = [];
@@ -189,7 +136,7 @@ export class Collision {
             bestAxis!.scale(-1);
         }
 
-        const contact = computeContactPoint(a, b, bestAxis!);
+        const contact = computeContactPoints(a, b, bestAxis!);
         return new CollisionManifold(bestAxis!, minOverlap, contact);
     }
 }
@@ -225,30 +172,105 @@ function projectShape(body: Body, axis: Vec2) {
     return project(body.getWorldVertices(), axis);
 }
 
-function getFarthestVertex(vertices: Vec2[], dir: Vec2): Vec2 {
-    let best = vertices[0];
-    let max = best.dot(dir);
+function computeContactPoints(
+    a: Body,
+    b: Body,
+    normal: Vec2
+): Vec2[] {
 
-    for (const v of vertices) {
-        const d = v.dot(dir);
-        if (d > max) {
-            max = d;
-            best = v;
+    if (a.shapeType === ShapeType.Circle ||
+        b.shapeType === ShapeType.Circle) {
+        return circleContact(a, b, normal);
+    }
+
+    return polygonContact(a, b, normal);
+}
+function polygonContact(
+    a: Body,
+    b: Body,
+    normal: Vec2
+): Vec2[] {
+    const vertsA = a.getWorldVertices();
+    const vertsB = b.getWorldVertices();
+
+    // Reference & incident faces
+    const ref = getReferenceFace(vertsA, normal);
+    const inc = getReferenceFace(vertsB, normal.clone().scale(-1));
+
+    let points = [inc.v1, inc.v2];
+
+    // Reference edge direction
+    const refEdge = ref.v2.clone().sub(ref.v1).normalize();
+    const refNormal = new Vec2(refEdge.y, -refEdge.x);
+
+    const offset = refNormal.dot(ref.v1);
+
+    // Clip against reference face side planes
+    points = clip(points, refEdge.clone().scale(-1), -refEdge.dot(ref.v1));
+    if (points.length < 2) return [];
+
+    points = clip(points, refEdge, refEdge.dot(ref.v2));
+    if (points.length < 2) return [];
+
+    // Keep only points behind reference face
+    return points.filter(p => refNormal.dot(p) - offset <= 0);
+}
+function clip(
+    points: Vec2[],
+    normal: Vec2,
+    offset: number
+): Vec2[] {
+    const out: Vec2[] = [];
+
+    const d0 = normal.dot(points[0]) - offset;
+    const d1 = normal.dot(points[1]) - offset;
+
+    if (d0 >= 0) out.push(points[0]);
+    if (d1 >= 0) out.push(points[1]);
+
+    if (d0 * d1 < 0) {
+        const t = d0 / (d0 - d1);
+        out.push(points[0].add(points[1].clone().sub(points[0]).clone().scale(t)));
+    }
+
+    return out;
+}
+function getReferenceFace(vertices: Vec2[], normal: Vec2) {
+    let bestDot = -Infinity;
+    let index = 0;
+
+    for (let i = 0; i < vertices.length; i++) {
+        const va = vertices[i];
+        const vb = vertices[(i + 1) % vertices.length];
+        const edge = vb.clone().sub(va);
+        const edgeNormal = new Vec2(edge.y, -edge.x).normalize();
+
+        const dot = edgeNormal.dot(normal);
+        if (dot > bestDot) {
+            bestDot = dot;
+            index = i;
         }
     }
-    return best.clone();
+
+    return {
+        v1: vertices[index],
+        v2: vertices[(index + 1) % vertices.length],
+    };
 }
+function circleContact(a: Body, b: Body, normal: Vec2): Vec2[] {
+    if (a.shapeType === ShapeType.Circle) {
+        return [
+            a.position.clone().add(
+                normal.clone().scale(a.radius! - 0.001)
+            )
+        ];
+    }
 
-function computeContactPoint(a: Body, b: Body, normal: Vec2): Vec2 {
-    if (a.shapeType === ShapeType.Circle)
-        return a.position.clone().add(normal.clone().scale(a.radius!));
-
-    if (b.shapeType === ShapeType.Circle)
-        return b.position.clone().sub(normal.clone().scale(b.radius!));
-
-    const va = getFarthestVertex(a.getWorldVertices(), normal);
-    const vb = getFarthestVertex(b.getWorldVertices(), normal.clone().scale(-1));
-    return va.add(vb).scale(0.5);
+    return [
+        b.position.clone().sub(
+            normal.clone().scale(b.radius! - 0.001)
+        )
+    ];
 }
 
 function closestPointOnPolygon(vertices: Vec2[], point: Vec2): Vec2 {

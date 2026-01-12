@@ -119,3 +119,31 @@ document.addEventListener("click", (event: MouseEvent) => {
 function findImmovable(b: Body, i: number) {
   return !b.movable && b.position.clone().sub(Mouse.clone()).magnitude() <= 50;
 }
+
+// INPUT
+
+function bindSlider(obj: any, prop:any, {
+  min = "0",
+  max = "1",
+  step = "0.01",
+} = {}) {
+  const slider = document.createElement("input");
+  slider.type = "range";
+  slider.min = min;
+  slider.max = max;
+  slider.step = step;
+  slider.value = obj[prop];
+
+  const label = document.createElement("div");
+  document.getElementById("div")
+  label.textContent = `${prop}: ${obj[prop]}`;
+
+  ui!.append(label, slider);
+
+  slider.addEventListener("input", () => {
+    obj[prop] = parseFloat(slider.value);
+    label.textContent = `${prop}: ${obj[prop].toFixed(2)}`;
+  });
+
+  return slider;
+}
