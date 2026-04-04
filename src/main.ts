@@ -17,6 +17,8 @@ const sceneConfig = [
   { id: "polka", label: "Polka", fn: Scenes.polka },
   { id: "stacks", label: "Stacks", fn: Scenes.stacks },
   { id: "honeycomb", label: "Honeycomb", fn: Scenes.honeycomb },
+  { id: "rotation", label: "Rotation", fn: Scenes.rotation },
+  { id: "boids", label: "Boids", fn: Scenes.boids },
 ];
 
 const ui = document.getElementById("ui");
@@ -110,9 +112,9 @@ document.addEventListener("click", (event: MouseEvent) => {
   if (Mouse.x < 800 && Mouse.y < 60)
     return;
   if (!world.bodies.some((b, i) => findImmovable(b, i))) {
-    world.add(new Body({ x: Mouse.x, y: Mouse.y, mass: 10000, color: "red", movable: false, r: 5, shapeType: ShapeType.Circle }));
+    world.addBody(new Body({ x: Mouse.x, y: Mouse.y, mass: 10000, color: "red", movable: false, r: 5, shapeType: ShapeType.Circle }));
   } else {
-    world.remove(world.bodies.findIndex((b, i) => findImmovable(b, i)));
+    world.removeBody(world.bodies.findIndex((b, i) => findImmovable(b, i)));
   }
 });
 
@@ -122,7 +124,7 @@ function findImmovable(b: Body, i: number) {
 
 // INPUT
 
-function bindSlider(obj: any, prop:any, {
+function bindSlider(obj: any, prop: any, {
   min = "0",
   max = "1",
   step = "0.01",

@@ -10,39 +10,39 @@ export class Vec2 {
         return this;
     }
 
-    add(v: Vec2) {
+    add(v: Vec2): Vec2 {
         this.x += v.x;
         this.y += v.y;
         return this;
     }
-    sub(v: Vec2) {
+    sub(v: Vec2): Vec2 {
         this.x -= v.x;
         this.y -= v.y;
         return this;
     }
-    multiply(v: Vec2) {
+    multiply(v: Vec2): Vec2 {
         this.x *= v.x;
         this.y *= v.y;
         return this;
     }
-    scale(s: number) {
+    scale(s: number): Vec2 {
         this.x *= s;
         this.y *= s;
         return this;
     }
-    dot(v: Vec2) {
+    dot(v: Vec2): number {
         return this.x * v.x + this.y * v.y;
     }
     cross(v: Vec2): number {
         return this.x * v.y - this.y * v.x;
     }
-    magnitude() {
+    magnitude(): number {
         return Math.hypot(this.x, this.y);
     }
-    magnitudeSq() {
+    magnitudeSq(): number {
         return this.x * this.x + this.y * this.y;
     }
-    normalize() {
+    normalize(): Vec2 {
         const mag = this.magnitude();
         if (mag > 0) {
             this.x /= mag;
@@ -51,7 +51,10 @@ export class Vec2 {
         return this;
     }
 
-    static add(a: Vec2, b: Vec2) {
+    static add(a: Vec2, b: Vec2): Vec2 {
         return new Vec2(a.x + b.x, a.y + b.y);
+    }
+    static sub(a: Vec2, b: Vec2): Vec2 {
+        return new Vec2(a.x - b.x, a.y - b.y);
     }
 }

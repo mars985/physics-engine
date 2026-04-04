@@ -1,3 +1,4 @@
+import { Boid } from "../boids/Boid.js";
 import { Vec2 } from "../math/Vec2.js";
 import { Body, ShapeType } from "../physics/Body.js";
 import { generateOrbitVelocity, getRandomColor, getRandomInt } from "../util/util.js";
@@ -6,29 +7,29 @@ import { World } from "./World.js";
 const width = window.innerWidth;
 const height = window.innerHeight;
 const wallThickness = 120;
+const wallColor = "hsl(217 56% 34.2%)";
+
+const createWall = (x: number, y: number, width: number, height: number, restitution = 1, color = wallColor) =>
+    new Body({
+        x,
+        y,
+        w: width,
+        h: height,
+        mass: 0,
+        restitution,
+        movable: false,
+        color,
+        shapeType: ShapeType.Polygon
+    });
 
 export class Scenes {
     static addBoundaries(
         world: World,
         restitution = 1,
         wallThickness = 120,
-        color = "hsl(217 56% 34.2%)"
     ) {
         const w = window.innerWidth;
         const h = window.innerHeight;
-
-        const createWall = (x: number, y: number, width: number, height: number) =>
-            new Body({
-                x,
-                y,
-                w: width,
-                h: height,
-                mass: 0,
-                restitution,
-                movable: false,
-                color,
-                shapeType: ShapeType.Polygon
-            });
 
         const walls = [
             createWall(w * 0.5, -wallThickness * 0.35, w * 2, wallThickness),
@@ -37,7 +38,7 @@ export class Scenes {
             createWall(w + wallThickness * 0.35, h * 0.5, wallThickness, h * 2),
         ];
 
-        world.add(...walls);
+        world.addBody(...walls);
     }
 
     static gravitySandbox(world: World, bodies = 30) {
@@ -48,7 +49,7 @@ export class Scenes {
         Scenes.addBoundaries(world, 0.9);
 
         for (let i = 0; i < bodies; i++) {
-            world.add(new Body({
+            world.addBody(new Body({
                 shapeType: ShapeType.Circle,
                 x: getRandomInt(wallThickness, width - wallThickness),
                 y: getRandomInt(wallThickness, height - wallThickness),
@@ -70,7 +71,7 @@ export class Scenes {
         const speed = 75;
 
         for (let i = 0; i < bodies; i++) {
-            world.add(new Body({
+            world.addBody(new Body({
                 shapeType: ShapeType.Circle,
                 x: getRandomInt(wallThickness, width - wallThickness),
                 y: getRandomInt(wallThickness, height - wallThickness),
@@ -93,7 +94,7 @@ export class Scenes {
         Scenes.addBoundaries(world, 1);
 
         for (let i = 0; i < bodies; i++) {
-            world.add(new Body({
+            world.addBody(new Body({
                 shapeType: ShapeType.Circle,
                 x: getRandomInt(wallThickness, width - wallThickness),
                 y: getRandomInt(wallThickness, height - wallThickness),
@@ -107,7 +108,7 @@ export class Scenes {
         const speed = 300;
         const large = 1;
         for (let i = 0; i < large; i++) {
-            world.add(new Body({
+            world.addBody(new Body({
                 shapeType: ShapeType.Circle,
                 x: getRandomInt(wallThickness, width - wallThickness),
                 y: getRandomInt(wallThickness, height - wallThickness),
@@ -138,7 +139,7 @@ export class Scenes {
             movable: false,
             color: "blue"
         });
-        world.add(sun);
+        world.addBody(sun);
 
         const planetCount = 60;
         const baseRadius = 15;
@@ -168,7 +169,7 @@ export class Scenes {
                     sun.mass
                 );
 
-                world.add(planet);
+                world.addBody(planet);
             }
         }
     }
@@ -188,7 +189,7 @@ export class Scenes {
             movable: false,
             color: "blue"
         });
-        world.add(sun);
+        world.addBody(sun);
 
         const planetCount = 30;
         const baseRadius = 15;
@@ -221,7 +222,7 @@ export class Scenes {
                     sun.mass
                 );
 
-                world.add(planet);
+                world.addBody(planet);
             }
         }
 
@@ -230,7 +231,7 @@ export class Scenes {
     static stacks(world: World, bodies = 500) {
         world.enable_collisions = true;
         Scenes.addBoundaries(world);
-        
+
         let t = 0;
         const baseGravity = 100;     // average gravity
         const amplitude = 300;      // oscillation strength
@@ -245,7 +246,7 @@ export class Scenes {
 
 
         for (let i = 0; i < bodies; i++) {
-            world.add(new Body({
+            world.addBody(new Body({
                 shapeType: ShapeType.Polygon,
                 x: getRandomInt(wallThickness, width - wallThickness),
                 y: getRandomInt(wallThickness, height - wallThickness),
@@ -253,7 +254,7 @@ export class Scenes {
                 restitution: 0.9,
                 mass: 100,
                 // color: getRandomColor(240, 360),
-                color:"velocity210"
+                color: "velocity210"
             }));
         }
     }
@@ -265,7 +266,7 @@ export class Scenes {
         world.enable_mutual_gravity = true;
 
         for (let i = 0; i < bodies; i++) {
-            world.add(new Body({
+            world.addBody(new Body({
                 shapeType: ShapeType.Polygon,
                 x: getRandomInt(wallThickness, width - wallThickness),
                 y: getRandomInt(wallThickness, height - wallThickness),
@@ -274,6 +275,89 @@ export class Scenes {
                 mass: 2000,
                 color: "velocity",
             }));
+        }
+    }
+
+    static rotation(world: World) {
+        Scenes.addBoundaries(world);
+        world.enable_collisions = true;
+
+        world.addBody(new Body({
+            shapeType: ShapeType.Polygon,
+            x: 300,
+            y: 300,
+            vertices: Body.createRegularPolygon(4, 25),
+            restitution: 0.9,
+            mass: 20,
+            color: "velocity",
+            movable: true
+        }));
+        world.addBody(new Body({
+            shapeType: ShapeType.Polygon,
+            x: 500,
+            y: 320,
+            vx: -100,
+            vertices: Body.createRegularPolygon(4, 25),
+            restitution: 0.9,
+            mass: 20,
+            color: "velocity",
+            movable: true
+        }));
+    }
+
+    static boids(world: World, count = 100) {
+        Scenes.addBoundaries(world);
+
+        let obstacle;
+        // obstacle = createWall(400, 300, 500, 30);
+        obstacle = new Body({
+            shapeType: ShapeType.Polygon,
+            vertices: [new Vec2(-160, -100), new Vec2(-160, 100), new Vec2(220, 0)],
+            x: 350,
+            y: 280,
+            color: wallColor,
+        })
+        obstacle.incline = 145;
+        world.addBody(obstacle);
+
+        obstacle = createWall(1400, 700, 200, 30);
+        obstacle.incline = 75;
+        world.addBody(obstacle);
+
+        world.addBody(new Body({
+            shapeType: ShapeType.Circle,
+            x: width / 2,
+            y: height,
+            r: 160,
+            color: wallColor
+        }))
+
+        world.addBody(new Body({
+            shapeType: ShapeType.Circle,
+            x: width,
+            y: 0,
+            r: 260,
+            color: wallColor
+        }))
+
+        const speed = 180;
+
+        for (let i = 0; i < count; i++) {
+            world.addBoid(new Boid({
+                body: new Body({
+                    shapeType: ShapeType.Polygon,
+                    x: getRandomInt(wallThickness, width - wallThickness),
+                    y: getRandomInt(wallThickness, height - wallThickness),
+                    vertices: [new Vec2(0, 15), new Vec2(-7, -7,), new Vec2(7, -7)],
+                    color: Math.random() < 0.07 ? "red" : "blue",
+                    movable: true,
+                    vx: getRandomInt(-speed, speed),
+                    vy: getRandomInt(-speed, speed),
+                }),
+                speed: new Vec2(speed - 50, speed + 15),
+                viewAngle: 180,
+                perceptionRadius: speed + 40,
+            }))
         }
     }
 };

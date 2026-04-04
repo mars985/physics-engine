@@ -273,7 +273,7 @@ function circleContact(a: Body, b: Body, normal: Vec2): Vec2[] {
     ];
 }
 
-function closestPointOnPolygon(vertices: Vec2[], point: Vec2): Vec2 {
+export function closestPointOnPolygon(vertices: Vec2[], point: Vec2): Vec2 {
     let closest = vertices[0];
     let minDistSq = Infinity;
 

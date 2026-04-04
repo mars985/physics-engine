@@ -18,7 +18,7 @@ export class Renderer {
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         ctx.restore();
 
-        for (const body of world.bodies) {
+        for (const body of [...world.bodies, ...world.boidBodies]) {
             if (body.color.includes("velocity"))
                 ctx.fillStyle = getVelocityColor(body.linear_velocity.magnitude(), extractVelocityHue(body.color));
             else if (body.color == "rainbow")
@@ -36,15 +36,16 @@ export class Renderer {
     }
 
     private drawCircle(body: Body) {
-        this.ctx.beginPath();
-        this.ctx.arc(
+        const ctx = this.ctx;
+        ctx.beginPath();
+        ctx.arc(
             body.position.x,
             body.position.y,
             body.radius,
             0,
             Math.PI * 2
         );
-        this.ctx.fill();
+        ctx.fill();
     }
 
     private drawPolygon(body: Body) {

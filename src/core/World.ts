@@ -3,11 +3,15 @@ import { Resolution } from "../physics/Resolution.js";
 import { Vec2 } from "../math/Vec2.js";
 import { Collision, CollisionManifold } from "../physics/Collision.js";
 import { QuadTree } from "../physics/QuadTree.js";
+import { Boid } from "../boids/Boid.js";
 
 export class World {
     bodies: Body[] = [];
-    private grid: Map<string, Body[]> = new Map();
+    grid: Map<string, Body[]> = new Map();
     cellSize = 150;
+
+    boids: Boid[] = [];
+    boidBodies: Body[] = [];
 
     gravity = new Vec2();
     damping = 1;
@@ -21,18 +25,10 @@ export class World {
 
     customCallback!: Function | null;
 
-    add(body: Body): void;
-    add(...bodies: Body[]): void;
-    add(...bodies: Body[]): void {
-        this.bodies.push(...bodies);
-    }
-
-    remove(i: number) {
-        this.bodies.splice(i, 1);
-    }
-
     clear() {
         this.bodies.length = 0;
+        this.boids.length = 0;
+        this.boidBodies.length = 0;
         this.enable_collisions = false;
         this.enable_mutual_gravity = false;
         this.enable_movable_mutual_gravity = false;
@@ -41,13 +37,50 @@ export class World {
         this.customCallback = null;
     }
 
+    addBody(body: Body): void;
+    addBody(...bodies: Body[]): void;
+    addBody(...bodies: Body[]): void {
+        this.bodies.push(...bodies);
+    }
+
+    removeBody(index: number) {
+        this.bodies.splice(index, 1);
+    }
+
+    addBoid(boid: Boid): void;
+    addBoid(...boids: Boid[]): void;
+    addBoid(...boids: Boid[]): void {
+        this.boids.push(...boids);
+        this.boidBodies.push(...boids.map((boid) => boid.body));
+    }
+
+    removeBoid(index: number) {
+        this.boids.splice(index, 1);
+        this.boidBodies.splice(index, 1);
+    }
+
     step(dt: number) {
-        this.grid = Collision.spacePartitioning(this.bodies, this.cellSize);
+        this.grid = Collision.spacePartitioning(
+            [
+                ...this.bodies,
+                // ...this.boidBodies
+            ],
+            this.cellSize
+        );
 
         if (this.enable_mutual_gravity || this.enable_movable_mutual_gravity)
             this.applyMutualGravity();
+        
+        // Boid.applySeparation(this.boids);
+        // Boid.applyAlignment(this.boids);
+        // Boid.applyCohesion(this.boids);
+        Boid.applyRules(this.boids);
+        Boid.applyObstacleAvoidance(this.boids, this.bodies);
 
-        this.integrateBodies(dt);
+        this.integrateBodies(dt);        
+        
+        Boid.limitSpeed(this.boids);
+        Boid.rotateBoids(this.boids);
 
         if (this.enable_collisions)
             this.handleCollisions();
@@ -86,7 +119,7 @@ export class World {
     private integrateBodies(dt: number) {
         let frameMaxAcc = 0;
 
-        for (const body of this.bodies) {
+        for (const body of [...this.bodies, ...this.boidBodies]) {
             if (!body.movable || body.mass === 0) continue;
             body.force.add(this.gravity.clone().scale(body.mass));
 
@@ -103,7 +136,6 @@ export class World {
         const SMOOTHING = 0.1;
         this.smoothedMaxAcceleration += (frameMaxAcc - this.smoothedMaxAcceleration) * SMOOTHING;
     }
-
 
     private handleCollisions() {
         for (const cell of this.grid.values()) {
