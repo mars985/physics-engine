@@ -15,6 +15,7 @@ export class World {
 
     gravity = new Vec2();
     damping = 1;
+    angular_damping = 1;
 
     enable_collisions = false;
     enable_mutual_gravity = false;
@@ -129,7 +130,7 @@ export class World {
             const acc = Math.hypot(ax, ay);
             frameMaxAcc = Math.max(frameMaxAcc, acc);
 
-            body.integrate(dt, this.damping);
+            body.integrate(dt, this.damping, this.angular_damping);
         }
 
         // Smooth it to avoid flickering colors
@@ -138,11 +139,20 @@ export class World {
     }
 
     private handleCollisions() {
+        const processed = new Set<number>();
+
         for (const cell of this.grid.values()) {
             for (let i = 0; i < cell.length; i++) {
                 for (let j = i + 1; j < cell.length; j++) {
                     const a = cell[i];
                     const b = cell[j];
+
+                    // Cantor pairing — unique key for each unordered pair
+                    const lo = Math.min(a.id, b.id);
+                    const hi = Math.max(a.id, b.id);
+                    const key = (lo + hi) * (lo + hi + 1) / 2 + hi;
+                    if (processed.has(key)) continue;
+                    processed.add(key);
 
                     this.solveCollision(a, b);
                 }
@@ -159,8 +169,7 @@ export class World {
             manifold = Collision.SAT(a, b);
 
         if (manifold) {
-            Resolution.resolve(a, b, manifold);
-            // Resolution.resolveWithRotation(a, b, manifold);
+            Resolution.resolveWithRotation(a, b, manifold);
         }
     }
 }

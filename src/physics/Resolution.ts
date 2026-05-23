@@ -38,7 +38,10 @@ export class Resolution {
 
     static resolveWithRotation(a: Body, b: Body, m: CollisionManifold) {
         const contactCount = m.contactList.length;
-        if (contactCount === 0) return;
+        if (contactCount === 0) {
+            Resolution.resolve(a, b, m);
+            return;
+        }
 
         const totalInvMass = a.invMass + b.invMass;
         if (totalInvMass === 0) return;
@@ -55,6 +58,7 @@ export class Resolution {
 
         // ---- IMPULSE RESOLUTION ----
         const e = Math.min(a.restitution, b.restitution);
+        const mu = (a.friction + b.friction) * 0.5;
         const impulses: Vec2[] = [];
 
         for (let i = 0; i < contactCount; i++) {
@@ -66,40 +70,66 @@ export class Resolution {
             const raPerp = new Vec2(-ra.y, ra.x);
             const rbPerp = new Vec2(-rb.y, rb.x);
 
-            const velA = a.linear_velocity.clone()
-                .add(raPerp.clone().scale(a.angular_velocity));
-            const velB = b.linear_velocity.clone()
-                .add(rbPerp.clone().scale(b.angular_velocity));
+            // Velocity at contact point on each body (linear + rotational)
+            const velA = a.linear_velocity.clone().add(raPerp.clone().scale(a.angular_velocity));
+            const velB = b.linear_velocity.clone().add(rbPerp.clone().scale(b.angular_velocity));
 
-            const rv = velB.sub(velA);
+            const rv = velB.sub(velA); // relative velocity at contact (velB is a clone)
             const velAlongNormal = rv.dot(m.normal);
 
-            // Objects separating → no impulse
             if (velAlongNormal > 0) {
                 impulses.push(new Vec2());
                 continue;
             }
 
+            const RESTING_VELOCITY = 0.5;
+            const resolvedE = Math.abs(velAlongNormal) < RESTING_VELOCITY ? 0 : e;
+
             const raCrossN = ra.cross(m.normal);
             const rbCrossN = rb.cross(m.normal);
-
             const denom =
-                a.invMass +
-                b.invMass +
+                totalInvMass +
                 (raCrossN * raCrossN) * a.invInertia +
                 (rbCrossN * rbCrossN) * b.invInertia;
 
-            let j = -(1 + e) * velAlongNormal;
-            j /= denom;
-            j /= contactCount;
+            // Normal impulse scalar
+            const j = -(1 + resolvedE) * velAlongNormal / denom / contactCount;
+            const normalImpulse = m.normal.clone().scale(j);
 
-            impulses.push(m.normal.clone().scale(j));
+            // ---- TANGENTIAL (FRICTION) IMPULSE ----
+            // Tangential relative velocity = rv minus its normal component
+            const vtX = rv.x - velAlongNormal * m.normal.x;
+            const vtY = rv.y - velAlongNormal * m.normal.y;
+            const vtMag = Math.hypot(vtX, vtY);
+
+            let frictionImpulse = new Vec2();
+            if (vtMag > 1e-4) {
+                // Tangent points in the direction of sliding (B relative to A)
+                const tangent = new Vec2(vtX / vtMag, vtY / vtMag);
+
+                const raCrossT = ra.cross(tangent);
+                const rbCrossT = rb.cross(tangent);
+                const denomT =
+                    totalInvMass +
+                    (raCrossT * raCrossT) * a.invInertia +
+                    (rbCrossT * rbCrossT) * b.invInertia;
+
+                // jt is negative: friction opposes the sliding direction
+                let jt = -vtMag / denomT / contactCount;
+
+                // Coulomb's cone: |friction impulse| <= mu * |normal impulse|
+                if (Math.abs(jt) > mu * j) jt = -mu * j;
+
+                frictionImpulse = tangent.scale(jt);
+            }
+
+            impulses.push(normalImpulse.add(frictionImpulse));
         }
 
         // ---- APPLY IMPULSES ----
         for (let i = 0; i < contactCount; i++) {
             const impulse = impulses[i];
-            if (impulse.magnitude() === 0) continue;
+            if (impulse.x === 0 && impulse.y === 0) continue;
 
             const ra = m.contactList[i].clone().sub(a.position);
             const rb = m.contactList[i].clone().sub(b.position);

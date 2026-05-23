@@ -228,38 +228,25 @@ export class Scenes {
 
     }
 
-    static stacks(world: World, bodies = 500) {
+    static stacks(world: World, bodies = 70) {
         world.enable_collisions = true;
         Scenes.addBoundaries(world);
-
-        let t = 0;
-        const baseGravity = 100;     // average gravity
-        const amplitude = 300;      // oscillation strength
-        const frequency = 0.4;      // Hz (cycles per second)
-
-        world.customCallback = (dt: number) => {
-            t += dt;
-            world.gravity.y =
-                baseGravity +
-                amplitude * Math.sin(2 * Math.PI * frequency * t);
-        };
-
+        world.gravity = new Vec2(0,100);
 
         for (let i = 0; i < bodies; i++) {
             world.addBody(new Body({
                 shapeType: ShapeType.Polygon,
                 x: getRandomInt(wallThickness, width - wallThickness),
                 y: getRandomInt(wallThickness, height - wallThickness),
-                vertices: Body.createRegularPolygon(getRandomInt(4, 4), 25),
+                vertices: Body.createRegularPolygon(4, 35),
                 restitution: 0.9,
                 mass: 100,
-                // color: getRandomColor(240, 360),
-                color: "velocity210"
+                color: getRandomColor(240, 360),
             }));
         }
     }
 
-    static honeycomb(world: World, bodies = 120) {
+    static honeycomb(world: World, bodies = 150) {
         Scenes.addBoundaries(world);
         world.enable_collisions = true;
         world.enable_movable_mutual_gravity = true;
@@ -282,25 +269,35 @@ export class Scenes {
         Scenes.addBoundaries(world);
         world.enable_collisions = true;
 
+        const cx = width * 0.5;
+        const cy = height * 0.5;
+
+        // Stationary target — will spin from the off-center hit
         world.addBody(new Body({
             shapeType: ShapeType.Polygon,
-            x: 300,
-            y: 300,
-            vertices: Body.createRegularPolygon(4, 25),
-            restitution: 0.9,
+            x: cx - 60,
+            y: cy,
+            vertices: Body.createRegularPolygon(4, 30),
+            incline:45,
+            restitution: 0.6,
+            friction: 0.5,
             mass: 20,
-            color: "velocity",
+            color: "velocity210",
             movable: true
         }));
+
+        // Incoming block — hits the target well above its center (vertex-to-face)
         world.addBody(new Body({
             shapeType: ShapeType.Polygon,
-            x: 500,
-            y: 320,
-            vx: -100,
-            vertices: Body.createRegularPolygon(4, 25),
-            restitution: 0.9,
+            x: cx + 200,
+            y: cy - 45,   // offset so its bottom vertex strikes near target's top edge
+            vx: -220,
+            vertices: Body.createRegularPolygon(4, 30),
+            incline:45,
+            restitution: 0.6,
+            friction: 0.5,
             mass: 20,
-            color: "velocity",
+            color: "velocity30",
             movable: true
         }));
     }

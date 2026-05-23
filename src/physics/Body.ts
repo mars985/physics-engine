@@ -20,6 +20,7 @@ export interface BodyOptions {
     angv?: number;
     incline?: number;
     restitution?: number;
+    friction?: number;
     color?: string;
     movable?: boolean;
     shapeType: ShapeType;
@@ -39,13 +40,15 @@ export class Body {
     readonly inertia: number;
     readonly invInertia: number;
     readonly restitution: number;
+    readonly friction: number;
 
     shapeType: ShapeType;
     color: string;
     movable: boolean;
 
     force = new Vec2(0, 0);
-    id = performance.now();
+    private static _nextId = 0;
+    id = Body._nextId++;
 
     constructor(options: BodyOptions) {
         const {
@@ -60,6 +63,7 @@ export class Body {
             angv = 0,
             incline = 0,
             restitution = 1,
+            friction = 0.4,
             color = "white",
             movable = true,
             shapeType
@@ -73,6 +77,7 @@ export class Body {
         this.mass = mass;
         this.invMass = mass === 0 ? 0 : 1 / mass;
         this.restitution = restitution;
+        this.friction = friction;
 
         this.shapeType = shapeType;
         this.color = color;
@@ -95,7 +100,7 @@ export class Body {
         this.invInertia = this.inertia === 0 ? 0 : 1 / this.inertia;
     }
 
-    integrate(dt: number, damping = 1) {
+    integrate(dt: number, damping = 1, angular_damping = damping) {
         if (!this.movable) return;
         const accelerationX = this.force.x * this.invMass;
         const accelerationY = this.force.y * this.invMass;
@@ -110,7 +115,12 @@ export class Body {
 
         this.linear_velocity.x *= damping;
         this.linear_velocity.y *= damping;
-        this.angular_velocity *= damping;
+        this.angular_velocity *= angular_damping;
+
+        const RESTING_ANGULAR = 0.5;
+        if (Math.abs(this.angular_velocity) < RESTING_ANGULAR) {
+            this.angular_velocity = 0;
+        }
 
         this.force.x = 0;
         this.force.y = 0;
@@ -138,7 +148,7 @@ export class Body {
     static createRegularPolygon(
         sides: number,
         radius: number,
-        rotation = 0
+        rotation = Math.PI / sides
     ): Vec2[] {
         if (sides < 3) {
             throw new Error("Polygon must have at least 3 sides");

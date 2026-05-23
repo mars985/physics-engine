@@ -205,11 +205,12 @@ function polygonContact(
 
     const offset = refNormal.dot(ref.v1);
 
-    // Clip against reference face side planes
-    points = clip(points, refEdge.clone().scale(-1), -refEdge.dot(ref.v1));
+    // Clip against reference face side planes.
+    // Keep points that project *past* v1 along refEdge (right of v1):
+    points = clip(points, refEdge, refEdge.dot(ref.v1));
     if (points.length < 2) return [];
-
-    points = clip(points, refEdge, refEdge.dot(ref.v2));
+    // Keep points that project *before* v2 along refEdge (left of v2):
+    points = clip(points, refEdge.clone().scale(-1), -refEdge.dot(ref.v2));
     if (points.length < 2) return [];
 
     // Keep only points behind reference face
@@ -230,7 +231,10 @@ function clip(
 
     if (d0 * d1 < 0) {
         const t = d0 / (d0 - d1);
-        out.push(points[0].add(points[1].clone().sub(points[0]).clone().scale(t)));
+        out.push(new Vec2(
+            points[0].x + (points[1].x - points[0].x) * t,
+            points[0].y + (points[1].y - points[0].y) * t
+        ));
     }
 
     return out;
