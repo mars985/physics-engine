@@ -132,6 +132,11 @@ export class Boid {
     }
 
     static applyRules(boids: Boid[]) {
+        const separationStrength = 12000;
+        const separationRadiusSq = 70 * 70;
+        const alignmentWeight = 0.05;
+        const cohesionWeight = 0.03;
+
         for (let i = 0; i < boids.length; i++) {
             const b1 = boids[i];
 
@@ -140,10 +145,6 @@ export class Boid {
             let cohPos = new Vec2(0, 0);
             let count = 0;
 
-            const seperationStrength = 50000;
-            const alignmentWeight = 0.1;
-            const cohesionWeight = 0.15;
-
             for (let j = 0; j < boids.length; j++) {
                 if (i === j) continue;
                 const b2 = boids[j];
@@ -151,15 +152,18 @@ export class Boid {
                 const toOther = Vec2.sub(b2.body.position, b1.body.position);
                 const dSq = toOther.magnitudeSq();
 
-                if (dSq < b1.perceptionRadiusSq && this.isVisible(b1, b2)) {
-                    const sep = toOther.clone().normalize().scale(-seperationStrength / (dSq + 1));
-                    sepForce.add(sep);
+                if (dSq >= b1.perceptionRadiusSq || !this.isVisible(b1, b2)) continue;
 
-                    aliVel.add(b2.body.linear_velocity);
-                    cohPos.add(b2.body.position);
-                    count++;
+                if (dSq < separationRadiusSq) {
+                    sepForce.add(toOther.clone().normalize().scale(-separationStrength / (dSq + 1)));
                 }
+
+                aliVel.add(b2.body.linear_velocity);
+                cohPos.add(b2.body.position);
+                count++;
             }
+
+            b1.body.force.add(sepForce);
 
             if (count > 0) {
                 aliVel.scale(1 / count).normalize().scale(b1.speed.y);
@@ -169,7 +173,6 @@ export class Boid {
                 const cohDesired = Vec2.sub(cohPos, b1.body.position).normalize().scale(b1.speed.y);
                 const cohSteer = Vec2.sub(cohDesired, b1.body.linear_velocity).scale(cohesionWeight);
 
-                b1.body.force.add(sepForce);
                 b1.body.force.add(aliSteer);
                 b1.body.force.add(cohSteer);
             }
@@ -226,8 +229,9 @@ export class Boid {
     static rotateBoids(boids: Boid[]) {
         for (let i = 0; i < boids.length; i++) {
             const vel = boids[i].body.linear_velocity;
-            const angle = Math.atan2(vel.y, vel.x);
-            boids[i].body.incline = angle * (180 / Math.PI);
+            if (vel.magnitudeSq() < 1) continue;
+            // -pi/2 aligns the triangle's local +y tip with the velocity direction
+            boids[i].body.incline = Math.atan2(vel.y, vel.x) - Math.PI / 2;
         }
     }
 }

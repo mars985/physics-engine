@@ -30,12 +30,13 @@ export class Scenes {
     ) {
         const w = window.innerWidth;
         const h = window.innerHeight;
+        const wt = wallThickness * Math.min(w / 1600, h / 900);
 
         const walls = [
-            createWall(w * 0.5, -wallThickness * 0.35, w * 2, wallThickness),
-            createWall(w * 0.5, h + wallThickness * 0.35, w * 2, wallThickness),
-            createWall(-wallThickness * 0.35, h * 0.5, wallThickness, h * 2),
-            createWall(w + wallThickness * 0.35, h * 0.5, wallThickness, h * 2),
+            createWall(w * 0.5, -wt * 0.35, w * 2, wt),
+            createWall(w * 0.5, h + wt * 0.35, w * 2, wt),
+            createWall(-wt * 0.35, h * 0.5, wt, h * 2),
+            createWall(w + wt * 0.35, h * 0.5, wt, h * 2),
         ];
 
         world.addBody(...walls);
@@ -305,19 +306,22 @@ export class Scenes {
     static boids(world: World, count = 100) {
         Scenes.addBoundaries(world);
 
+        const sx = width / 1600;
+        const sy = height / 900;
+        const s = Math.min(sx, sy);
+
         let obstacle;
-        // obstacle = createWall(400, 300, 500, 30);
         obstacle = new Body({
             shapeType: ShapeType.Polygon,
-            vertices: [new Vec2(-160, -100), new Vec2(-160, 100), new Vec2(220, 0)],
-            x: 350,
-            y: 280,
+            vertices: [new Vec2(-160 * s, -100 * s), new Vec2(-160 * s, 100 * s), new Vec2(220 * s, 0)],
+            x: 350 * sx,
+            y: 280 * sy,
             color: wallColor,
         })
         obstacle.incline = 145;
         world.addBody(obstacle);
 
-        obstacle = createWall(1400, 700, 200, 30);
+        obstacle = createWall(1400 * sx, 700 * sy, 200 * s, Math.max(20, 30 * s));
         obstacle.incline = 75;
         world.addBody(obstacle);
 
@@ -325,7 +329,7 @@ export class Scenes {
             shapeType: ShapeType.Circle,
             x: width / 2,
             y: height,
-            r: 160,
+            r: 160 * s,
             color: wallColor
         }))
 
@@ -333,7 +337,7 @@ export class Scenes {
             shapeType: ShapeType.Circle,
             x: width,
             y: 0,
-            r: 260,
+            r: 260 * s,
             color: wallColor
         }))
 
@@ -345,8 +349,8 @@ export class Scenes {
                     shapeType: ShapeType.Polygon,
                     x: getRandomInt(wallThickness, width - wallThickness),
                     y: getRandomInt(wallThickness, height - wallThickness),
-                    vertices: [new Vec2(0, 15), new Vec2(-7, -7,), new Vec2(7, -7)],
-                    color: Math.random() < 0.07 ? "red" : "blue",
+                    vertices: [new Vec2(0, 15 * s), new Vec2(-7 * s, -7 * s), new Vec2(7 * s, -7 * s)],
+                    color: getRandomColor(220, 280),
                     movable: true,
                     vx: getRandomInt(-speed, speed),
                     vy: getRandomInt(-speed, speed),
